@@ -1,5 +1,5 @@
 FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
@@ -8,7 +8,7 @@ COPY . .
 RUN pnpm build
 
 FROM node:24-alpine
-RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
