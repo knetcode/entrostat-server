@@ -35,7 +35,7 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
    */
   if (process.env.SKIP_EMAIL === "true") {
     // Pretend success during tests/local runs to avoid rate limits
-    console.log(`[Email Service] SKIP_EMAIL enabled, not sending email to ${email}`);
+    console.log(`[Email Service] SKIP_EMAIL enabled, not sending email to ${email} | OTP: ${otp}`);
     return;
   }
 
