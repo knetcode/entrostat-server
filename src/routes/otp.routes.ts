@@ -18,7 +18,6 @@ import {
   type ErrorResponse,
   type ErrorItem,
   type VerifySuccessResponse,
-  type VerifyErrorResponse,
   type RateLimitResponse,
 } from "../schemas/otp.schemas";
 import {
@@ -28,7 +27,6 @@ import {
   successResponseSchema,
   errorResponseSchema,
   verifySuccessResponseSchema,
-  verifyErrorResponseSchema,
   rateLimitResponseSchema,
 } from "../schemas/json-schemas";
 
@@ -222,9 +220,7 @@ export async function otpRoutes(app: FastifyInstance) {
         tags: ["OTP"],
         body: verifyOtpRequestSchema,
         response: {
-          200: {
-            oneOf: [verifySuccessResponseSchema, verifyErrorResponseSchema],
-          },
+          200: verifySuccessResponseSchema,
           400: errorResponseSchema,
           500: errorResponseSchema,
         },
@@ -263,39 +259,39 @@ export async function otpRoutes(app: FastifyInstance) {
         }
 
         // This shouldn't happen (verifyOtp throws errors), but handle it anyway
-        const verifyErrorResponse: VerifyErrorResponse = {
-          success: true,
-          valid: false,
+        const errorResponse: ErrorResponse = {
+          success: false,
           message: "Invalid or expired OTP",
+          errors: [],
         };
-        return reply.status(200).send(verifyErrorResponse);
+        return reply.status(400).send(errorResponse);
       } catch (error) {
-        // Handle specific OTP errors
+        // Handle specific OTP errors - return 400 for client errors
         if (error instanceof OtpNotFoundError) {
-          const verifyErrorResponse: VerifyErrorResponse = {
-            success: true,
-            valid: false,
+          const errorResponse: ErrorResponse = {
+            success: false,
             message: "Invalid or expired OTP",
+            errors: [],
           };
-          return reply.status(200).send(verifyErrorResponse);
+          return reply.status(400).send(errorResponse);
         }
 
         if (error instanceof OtpExpiredError) {
-          const verifyErrorResponse: VerifyErrorResponse = {
-            success: true,
-            valid: false,
+          const errorResponse: ErrorResponse = {
+            success: false,
             message: "Invalid or expired OTP",
+            errors: [],
           };
-          return reply.status(200).send(verifyErrorResponse);
+          return reply.status(400).send(errorResponse);
         }
 
         if (error instanceof InvalidOtpError) {
-          const verifyErrorResponse: VerifyErrorResponse = {
-            success: true,
-            valid: false,
+          const errorResponse: ErrorResponse = {
+            success: false,
             message: "Invalid or expired OTP",
+            errors: [],
           };
-          return reply.status(200).send(verifyErrorResponse);
+          return reply.status(400).send(errorResponse);
         }
 
         // Log unexpected errors
