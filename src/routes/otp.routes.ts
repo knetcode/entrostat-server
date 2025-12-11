@@ -29,6 +29,7 @@ import {
   verifySuccessResponseSchema,
   rateLimitResponseSchema,
 } from "../schemas/json-schemas";
+import { logError, extractErrorDetails } from "../services/error-log.service";
 
 /**
  * Convert a Zod issue to an ErrorItem
@@ -69,18 +70,38 @@ export async function otpRoutes(app: FastifyInstance) {
       attachValidation: true,
     },
     async (request, reply) => {
+      // Extract and validate correlationId from headers (required)
+      const correlationId = request.headers["correlationid"] as string | undefined;
+
+      if (!correlationId) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Correlation ID is required",
+          errors: [],
+        };
+        return reply.status(400).send(errorResponse);
+      }
+
+      // Extract email from request body for error logging
+      const requestBody = request.body as { email?: string };
+      const emailForLogging = requestBody?.email;
+
       try {
         // Validate request body
         const validationResult = sendOtpSchema.safeParse(request.body);
 
         if (!validationResult.success) {
+          // Use the first error message for single errors, or a friendly message for multiple
+          const mainMessage =
+            validationResult.error.issues.length === 1
+              ? validationResult.error.issues[0].message
+              : "Please check your input and try again.";
+
           const errorResponse: ErrorResponse = {
             success: false,
-            message:
-              validationResult.error.issues.length === 1
-                ? validationResult.error.issues[0].message
-                : `${validationResult.error.issues.length} validation errors occurred`,
+            message: mainMessage,
             errors: validationResult.error.issues.map(zodIssueToErrorItem),
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -88,19 +109,31 @@ export async function otpRoutes(app: FastifyInstance) {
         const { email } = validationResult.data;
 
         // Send OTP (service handles auto-resend logic)
-        await sendOtp(email);
+        await sendOtp(email, correlationId);
 
         const successResponse: SuccessResponse = {
           success: true,
           message: "OTP sent successfully",
+          correlationId,
         };
         return reply.status(200).send(successResponse);
       } catch (error) {
         // Handle rate limit errors
         if (error instanceof RateLimitError) {
+          // Log rate limit errors for monitoring
+          await logError({
+            correlationId,
+            email: emailForLogging,
+            errorMessage: error.message,
+            errorType: error.name,
+            requestPath: "/api/otp/send",
+            requestMethod: "POST",
+          });
+
           const rateLimitResponse: RateLimitResponse = {
             success: false,
             message: error.message,
+            correlationId,
           };
           return reply.status(429).send(rateLimitResponse);
         }
@@ -108,11 +141,24 @@ export async function otpRoutes(app: FastifyInstance) {
         // Log unexpected errors
         app.log.error(error);
 
+        // Log error to database for debugging
+        const errorDetails = extractErrorDetails(error);
+        await logError({
+          correlationId,
+          email: emailForLogging,
+          errorMessage: errorDetails.message,
+          errorType: errorDetails.type,
+          errorStack: errorDetails.stack,
+          requestPath: "/api/otp/send",
+          requestMethod: "POST",
+        });
+
         // Generic error response (don't leak internal details)
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "An error occurred while sending OTP",
+          message: "Something went wrong while sending your OTP. Please try again in a moment.",
           errors: [],
+          correlationId,
         };
         return reply.status(500).send(errorResponse);
       }
@@ -139,30 +185,51 @@ export async function otpRoutes(app: FastifyInstance) {
       attachValidation: true,
     },
     async (request, reply) => {
+      // Extract and validate correlationId from headers (required)
+      const correlationId = request.headers["correlationid"] as string | undefined;
+
+      if (!correlationId) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Correlation ID is required",
+          errors: [],
+        };
+        return reply.status(400).send(errorResponse);
+      }
+
+      // Extract email from request body for error logging
+      const requestBody = request.body as { email?: string };
+      const emailForLogging = requestBody?.email;
+
       try {
         // Validate request body
         const validationResult = resendOtpSchema.safeParse(request.body);
 
         if (!validationResult.success) {
+          // Use the first error message for single errors, or a friendly message for multiple
+          const mainMessage =
+            validationResult.error.issues.length === 1
+              ? validationResult.error.issues[0].message
+              : "Please check your input and try again.";
+
           const errorResponse: ErrorResponse = {
             success: false,
-            message:
-              validationResult.error.issues.length === 1
-                ? validationResult.error.issues[0].message
-                : `${validationResult.error.issues.length} validation errors occurred`,
+            message: mainMessage,
             errors: validationResult.error.issues.map(zodIssueToErrorItem),
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
 
         const { email } = validationResult.data;
 
-        // Resend OTP
+        // Resend OTP (uses correlationId from existing OTP record)
         await resendOtp(email);
 
         const successResponse: SuccessResponse = {
           success: true,
           message: "OTP resent successfully",
+          correlationId,
         };
         return reply.status(200).send(successResponse);
       } catch (error) {
@@ -172,6 +239,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: false,
             message: error.message,
             errors: [],
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -181,6 +249,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: false,
             message: error.message,
             errors: [],
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -190,6 +259,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: false,
             message: error.message,
             errors: [],
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -197,11 +267,24 @@ export async function otpRoutes(app: FastifyInstance) {
         // Log unexpected errors
         app.log.error(error);
 
+        // Log error to database for debugging
+        const errorDetails = extractErrorDetails(error);
+        await logError({
+          correlationId,
+          email: emailForLogging,
+          errorMessage: errorDetails.message,
+          errorType: errorDetails.type,
+          errorStack: errorDetails.stack,
+          requestPath: "/api/otp/resend",
+          requestMethod: "POST",
+        });
+
         // Generic error response
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "An error occurred while resending OTP",
+          message: "Something went wrong while resending your OTP. Please try again in a moment.",
           errors: [],
+          correlationId,
         };
         return reply.status(500).send(errorResponse);
       }
@@ -228,18 +311,38 @@ export async function otpRoutes(app: FastifyInstance) {
       attachValidation: true,
     },
     async (request, reply) => {
+      // Extract and validate correlationId from headers (required)
+      const correlationId = request.headers["correlationid"] as string | undefined;
+
+      if (!correlationId) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Correlation ID is required",
+          errors: [],
+        };
+        return reply.status(400).send(errorResponse);
+      }
+
+      // Extract email from request body for error logging
+      const requestBody = request.body as { email?: string };
+      const emailForLogging = requestBody?.email;
+
       try {
         // Validate request body
         const validationResult = verifyOtpSchema.safeParse(request.body);
 
         if (!validationResult.success) {
+          // Use the first error message for single errors, or a friendly message for multiple
+          const mainMessage =
+            validationResult.error.issues.length === 1
+              ? validationResult.error.issues[0].message
+              : "Please check your input and try again.";
+
           const errorResponse: ErrorResponse = {
             success: false,
-            message:
-              validationResult.error.issues.length === 1
-                ? validationResult.error.issues[0].message
-                : `${validationResult.error.issues.length} validation errors occurred`,
+            message: mainMessage,
             errors: validationResult.error.issues.map(zodIssueToErrorItem),
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -254,6 +357,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: true,
             valid: true,
             message: "OTP verified successfully",
+            correlationId,
           };
           return reply.status(200).send(verifySuccessResponse);
         }
@@ -263,6 +367,7 @@ export async function otpRoutes(app: FastifyInstance) {
           success: false,
           message: "Invalid or expired OTP",
           errors: [],
+          correlationId,
         };
         return reply.status(400).send(errorResponse);
       } catch (error) {
@@ -272,6 +377,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: false,
             message: "Invalid or expired OTP",
             errors: [],
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -281,6 +387,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: false,
             message: "Invalid or expired OTP",
             errors: [],
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -290,6 +397,7 @@ export async function otpRoutes(app: FastifyInstance) {
             success: false,
             message: "Invalid or expired OTP",
             errors: [],
+            correlationId,
           };
           return reply.status(400).send(errorResponse);
         }
@@ -297,11 +405,24 @@ export async function otpRoutes(app: FastifyInstance) {
         // Log unexpected errors
         app.log.error(error);
 
+        // Log error to database for debugging
+        const errorDetails = extractErrorDetails(error);
+        await logError({
+          correlationId,
+          email: emailForLogging,
+          errorMessage: errorDetails.message,
+          errorType: errorDetails.type,
+          errorStack: errorDetails.stack,
+          requestPath: "/api/otp/verify",
+          requestMethod: "POST",
+        });
+
         // Generic error response
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "An error occurred while verifying OTP",
+          message: "Something went wrong while verifying your OTP. Please try again in a moment.",
           errors: [],
+          correlationId,
         };
         return reply.status(500).send(errorResponse);
       }

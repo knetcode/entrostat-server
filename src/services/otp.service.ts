@@ -103,7 +103,9 @@ async function checkRateLimit(email: string): Promise<void> {
   const requestCount = result[0]?.count ?? 0;
 
   if (requestCount >= config.MAX_OTP_REQUESTS_PER_HOUR) {
-    throw new RateLimitError(`rate limit exceeded: Maximum ${config.MAX_OTP_REQUESTS_PER_HOUR} OTP requests per hour`);
+    throw new RateLimitError(
+      `You've reached the limit of ${config.MAX_OTP_REQUESTS_PER_HOUR} OTP requests per hour. Please wait about an hour before trying again.`
+    );
   }
 }
 
@@ -141,7 +143,7 @@ async function generateUniqueOtp(email: string): Promise<string> {
     }
   }
 
-  throw new Error("Unable to generate unique OTP after maximum attempts");
+  throw new Error("We're experiencing high demand. Please try again in a moment.");
 }
 
 /**
@@ -215,10 +217,11 @@ function constantTimeCompare(a: string, b: string): boolean {
  * - Records rate limit entry
  *
  * @param email - Email address to send OTP to
+ * @param correlationId - Correlation ID for tracking the user flow
  * @returns The generated OTP code (for testing - will be removed when email service is integrated)
  * @throws {RateLimitError} If rate limit exceeded (max requests per hour)
  */
-export async function sendOtp(email: string): Promise<string> {
+export async function sendOtp(email: string, correlationId: string): Promise<string> {
   const normalizedEmail = normalizeEmail(email);
 
   // Check rate limit
@@ -228,6 +231,7 @@ export async function sendOtp(email: string): Promise<string> {
   // This ensures every request (new or resend) counts against the rate limit
   await db.insert(otpRateLimit).values({
     email: normalizedEmail,
+    correlationId,
     requestedAt: new Date(),
   });
 
@@ -251,6 +255,7 @@ export async function sendOtp(email: string): Promise<string> {
   await db.insert(otpRecords).values({
     email: normalizedEmail,
     otpCode: otp,
+    correlationId,
     expiresAt,
     resendCount: 0,
     used: false,
@@ -261,6 +266,7 @@ export async function sendOtp(email: string): Promise<string> {
   await db.insert(otpHistory).values({
     email: normalizedEmail,
     otpCode: otp,
+    correlationId,
   });
 
   // Send OTP email
@@ -292,18 +298,18 @@ export async function resendOtp(email: string): Promise<string> {
   const otpRecord = await getLatestActiveOtp(normalizedEmail);
 
   if (!otpRecord) {
-    throw new OtpNotFoundError("No active OTP found. Please request a new one.");
+    throw new OtpNotFoundError("No OTP code found for this email. Please request a new one to continue.");
   }
 
   // Check if within resend window
   if (!canResendExistingOtp(otpRecord)) {
-    throw new OtpExpiredError("Resend window has expired. Please request a new OTP.");
+    throw new OtpExpiredError("Your OTP code has expired. Please request a new one to continue.");
   }
 
   // Check resend count
   if (otpRecord.resendCount >= config.MAX_RESEND_COUNT) {
     throw new MaxResendExceededError(
-      `Maximum resend count (${config.MAX_RESEND_COUNT}) exceeded. Please request a new OTP.`
+      `You've reached the maximum number of resends (${config.MAX_RESEND_COUNT}). Please request a new OTP code.`
     );
   }
 
@@ -354,12 +360,12 @@ export async function verifyOtp(email: string, otp: string): Promise<boolean> {
   // Check if expired
   const expiresAt = otpRecord.expiresAt instanceof Date ? otpRecord.expiresAt : new Date(otpRecord.expiresAt);
   if (new Date() > expiresAt) {
-    throw new OtpExpiredError("OTP has expired. Please request a new one.");
+    throw new OtpExpiredError("This OTP code has expired. Please request a new one.");
   }
 
   // Constant-time comparison
   if (!constantTimeCompare(normalizedOtp, otpRecord.otpCode)) {
-    throw new InvalidOtpError("Invalid OTP code.");
+    throw new InvalidOtpError("The OTP code you entered is incorrect. Please check and try again.");
   }
 
   // Mark as used

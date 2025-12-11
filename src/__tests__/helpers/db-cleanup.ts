@@ -6,6 +6,7 @@
 import { db } from "../../db";
 import { otpRecords, otpHistory, otpRateLimit } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
+import { generateUUID } from "./api-client";
 
 /**
  * Clean up all OTP-related data for a specific email
@@ -67,4 +68,72 @@ export async function getOtpHistory(email: string) {
   const normalizedEmail = email.toLowerCase().trim();
 
   return db.select().from(otpHistory).where(eq(otpHistory.email, normalizedEmail)).orderBy(desc(otpHistory.createdAt));
+}
+
+/**
+ * Insert an OTP record with a specific timestamp (for testing time-based behavior)
+ * Useful for testing resend window expiry and OTP invalidation
+ */
+export async function insertOtpRecord(
+  email: string,
+  otpCode: string,
+  options: {
+    createdAt?: Date;
+    expiresAt?: Date;
+    resendCount?: number;
+    used?: boolean;
+    invalidated?: boolean;
+    correlationId?: string;
+  } = {}
+) {
+  const normalizedEmail = email.toLowerCase().trim();
+  const now = new Date();
+
+  const record = {
+    email: normalizedEmail,
+    otpCode,
+    correlationId: options.correlationId ?? generateUUID(),
+    createdAt: options.createdAt ?? now,
+    expiresAt: options.expiresAt ?? new Date(now.getTime() + 30 * 1000), // 30 seconds default
+    resendCount: options.resendCount ?? 0,
+    used: options.used ?? false,
+    invalidated: options.invalidated ?? false,
+  };
+
+  await db.insert(otpRecords).values(record);
+
+  // Also add to history for uniqueness tracking
+  await db.insert(otpHistory).values({
+    email: normalizedEmail,
+    otpCode,
+    correlationId: record.correlationId,
+    createdAt: record.createdAt,
+  });
+
+  return record;
+}
+
+/**
+ * Get all active (non-used, non-invalidated) OTP records for an email
+ */
+export async function getActiveOtpRecords(email: string) {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  return db.select().from(otpRecords).where(eq(otpRecords.email, normalizedEmail)).orderBy(desc(otpRecords.createdAt));
+}
+
+/**
+ * Insert multiple OTP codes into history (for testing uniqueness)
+ */
+export async function insertOtpHistoryCodes(email: string, otpCodes: string[]) {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  for (const otpCode of otpCodes) {
+    await db.insert(otpHistory).values({
+      email: normalizedEmail,
+      otpCode,
+      correlationId: generateUUID(),
+      createdAt: new Date(),
+    });
+  }
 }

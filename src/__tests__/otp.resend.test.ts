@@ -113,7 +113,7 @@ describe("POST /api/otp/resend", () => {
       expect(response.status).toBe(400);
       expect(response.data).toMatchObject({
         success: false,
-        message: expect.stringContaining("No active OTP"),
+        message: expect.stringContaining("No OTP code found"),
       });
     });
 
@@ -147,7 +147,7 @@ describe("POST /api/otp/resend", () => {
       expect(response.status).toBe(400);
       expect(response.data).toMatchObject({
         success: false,
-        message: expect.stringContaining("Maximum resend count"),
+        message: expect.stringContaining("maximum number of resends"),
       });
     });
 

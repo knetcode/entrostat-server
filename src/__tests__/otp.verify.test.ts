@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sendOtp, verifyOtp, resendOtp, wait } from "./helpers/api-client";
-import { cleanupEmail, getLatestOtpCode } from "./helpers/db-cleanup";
+import { cleanupEmail, getLatestOtpCode, insertOtpRecord, getActiveOtpRecords } from "./helpers/db-cleanup";
 
 describe("POST /api/otp/verify", () => {
   const testEmail = "verify-test@example.com";
@@ -76,10 +76,9 @@ describe("POST /api/otp/verify", () => {
 
       const response = await verifyOtp(testEmail, "000000");
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
       expect(response.data).toMatchObject({
-        success: true,
-        valid: false,
+        success: false,
         message: "Invalid or expired OTP",
       });
     });
@@ -113,10 +112,9 @@ describe("POST /api/otp/verify", () => {
 
       // Try to verify expired OTP
       const response = await verifyOtp(testEmail, otpCode!);
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
       expect(response.data).toMatchObject({
-        success: true,
-        valid: false,
+        success: false,
         message: "Invalid or expired OTP",
       });
     }, 40000); // Increase timeout for this test (40 seconds)
@@ -138,10 +136,9 @@ describe("POST /api/otp/verify", () => {
 
       // Second verification should fail (already used)
       const response2 = await verifyOtp(testEmail, otpCode!);
-      expect(response2.status).toBe(200);
+      expect(response2.status).toBe(400);
       expect(response2.data).toMatchObject({
-        success: true,
-        valid: false,
+        success: false,
         message: "Invalid or expired OTP",
       });
     });
@@ -149,10 +146,9 @@ describe("POST /api/otp/verify", () => {
     it("should reject when no active OTP exists", async () => {
       const response = await verifyOtp(testEmail, "123456");
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
       expect(response.data).toMatchObject({
-        success: true,
-        valid: false,
+        success: false,
         message: "Invalid or expired OTP",
       });
     });
@@ -214,7 +210,7 @@ describe("POST /api/otp/verify", () => {
       // Subsequent verification with same OTP should fail (already used)
       const response2 = await verifyOtp(testEmail, secondOtp!);
       expect(response2.data).toMatchObject({
-        valid: false,
+        success: false,
       });
     });
   });
@@ -250,7 +246,7 @@ describe("POST /api/otp/verify", () => {
       // After verification, OTP is marked as used
       const verifyAgain = await verifyOtp(testEmail, firstOtp!);
       expect(verifyAgain.data).toMatchObject({
-        valid: false, // Now it's used
+        success: false, // Now it's used
       });
     });
 
@@ -268,8 +264,93 @@ describe("POST /api/otp/verify", () => {
       // Verify should fail because OTP is expired (even though resend window is 5 min)
       const verifyExpired = await verifyOtp(testEmail, otpCode!);
       expect(verifyExpired.data).toMatchObject({
-        valid: false,
+        success: false,
       });
     }, 40000);
+
+    it("should invalidate old OTP when new OTP is generated after resend window expires", async () => {
+      // This test verifies that when the resend window expires and a new OTP is requested,
+      // the old OTP is properly invalidated (marked as invalidated in DB)
+
+      // Insert an "old" OTP record that was created outside the resend window (6 minutes ago)
+      const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+      const oldOtpCode = "999888";
+
+      await insertOtpRecord(testEmail, oldOtpCode, {
+        createdAt: sixMinutesAgo,
+        expiresAt: new Date(sixMinutesAgo.getTime() + 30 * 1000), // Already expired
+        resendCount: 0,
+        used: false,
+        invalidated: false,
+      });
+
+      // Verify the old OTP is in the database and active (before new send)
+      const recordsBefore = await getActiveOtpRecords(testEmail);
+      const oldRecord = recordsBefore.find((r) => r.otpCode === oldOtpCode);
+      expect(oldRecord).toBeTruthy();
+      expect(oldRecord?.invalidated).toBe(false);
+
+      // Now send a new OTP - this should generate a NEW OTP (not resend)
+      // because the old OTP is outside the resend window
+      const response = await sendOtp(testEmail);
+      expect(response.status).toBe(200);
+      await wait(500);
+
+      // Get all records after the new send
+      const recordsAfter = await getActiveOtpRecords(testEmail);
+
+      // The old OTP should now be invalidated
+      const oldRecordAfter = recordsAfter.find((r) => r.otpCode === oldOtpCode);
+      expect(oldRecordAfter?.invalidated).toBe(true);
+
+      // There should be a new OTP that is NOT invalidated
+      const newRecord = recordsAfter.find((r) => r.otpCode !== oldOtpCode && !r.invalidated);
+      expect(newRecord).toBeTruthy();
+      expect(newRecord?.otpCode).not.toBe(oldOtpCode);
+
+      // The old OTP should fail verification (it's invalidated and expired)
+      const verifyOld = await verifyOtp(testEmail, oldOtpCode);
+      expect(verifyOld.data).toMatchObject({
+        success: false,
+      });
+
+      // The new OTP should succeed
+      const verifyNew = await verifyOtp(testEmail, newRecord!.otpCode);
+      expect(verifyNew.data).toMatchObject({
+        valid: true,
+      });
+    });
+
+    it("should only allow verification of the latest OTP when multiple exist", async () => {
+      // Insert an old OTP that's outside resend window
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const oldOtpCode = "111222";
+
+      await insertOtpRecord(testEmail, oldOtpCode, {
+        createdAt: tenMinutesAgo,
+        expiresAt: new Date(tenMinutesAgo.getTime() + 30 * 1000),
+        used: false,
+        invalidated: false,
+      });
+
+      // Send a new OTP
+      await sendOtp(testEmail);
+      await wait(500);
+      const newOtpCode = await getLatestOtpCode(testEmail);
+      expect(newOtpCode).toBeTruthy();
+      expect(newOtpCode).not.toBe(oldOtpCode);
+
+      // Old OTP should be invalid (even if we try it before the new one)
+      const verifyOld = await verifyOtp(testEmail, oldOtpCode);
+      expect(verifyOld.data).toMatchObject({
+        success: false,
+      });
+
+      // New OTP should work
+      const verifyNew = await verifyOtp(testEmail, newOtpCode!);
+      expect(verifyNew.data).toMatchObject({
+        valid: true,
+      });
+    });
   });
 });

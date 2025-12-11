@@ -4,7 +4,13 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sendOtp, verifyOtp, wait } from "./helpers/api-client";
-import { cleanupEmail, getLatestOtpCode, getLatestOtpRecord, getOtpHistory } from "./helpers/db-cleanup";
+import {
+  cleanupEmail,
+  getLatestOtpCode,
+  getLatestOtpRecord,
+  getOtpHistory,
+  insertOtpHistoryCodes,
+} from "./helpers/db-cleanup";
 
 describe("POST /api/otp/send", () => {
   const testEmail = "test@example.com";
@@ -130,7 +136,7 @@ describe("POST /api/otp/send", () => {
       expect(response.status).toBe(429);
       expect(response.data).toMatchObject({
         success: false,
-        message: expect.stringContaining("rate limit"),
+        message: expect.stringContaining("reached the limit"),
       });
     });
 
@@ -199,6 +205,50 @@ describe("POST /api/otp/send", () => {
         expect(entry.otpCode).toMatch(/^\d{6}$/);
       }
     });
+
+    it("should generate different OTPs to avoid duplicates in 24-hour window", async () => {
+      // Pre-populate history with many OTP codes to increase collision chance
+      // This tests that the system regenerates when it encounters a duplicate
+      const usedOtps: string[] = [];
+      for (let i = 0; i < 50; i++) {
+        usedOtps.push(String(100000 + i).padStart(6, "0"));
+      }
+      await insertOtpHistoryCodes(testEmail, usedOtps);
+
+      // Send a new OTP - should generate one not in history
+      const response = await sendOtp(testEmail);
+      expect(response.status).toBe(200);
+      expect(response.data).toMatchObject({
+        success: true,
+        message: "OTP sent successfully",
+      });
+
+      await wait(500);
+      const generatedOtp = await getLatestOtpCode(testEmail);
+      expect(generatedOtp).toBeTruthy();
+
+      // The generated OTP should NOT be one of the pre-populated ones
+      expect(usedOtps).not.toContain(generatedOtp);
+    });
+
+    it("should silently regenerate OTP without informing user when duplicate occurs", async () => {
+      // Pre-populate some history
+      await insertOtpHistoryCodes(testEmail, ["111111", "222222", "333333"]);
+
+      // Send OTP - even if the random generator happens to pick a duplicate,
+      // the user should see a normal success response (no error about duplicates)
+      const response = await sendOtp(testEmail);
+
+      expect(response.status).toBe(200);
+      expect(response.data).toMatchObject({
+        success: true,
+        message: "OTP sent successfully",
+      });
+
+      // Response should NOT contain any indication of duplicate regeneration
+      expect(response.data).not.toHaveProperty("regenerated");
+      expect(response.data).not.toHaveProperty("duplicate");
+    });
   });
 
   describe("OTP resend window behavior", () => {
@@ -216,7 +266,7 @@ describe("POST /api/otp/send", () => {
       // Verify the expired OTP fails
       const verifyExpired = await verifyOtp(testEmail, firstOtp!);
       expect(verifyExpired.data).toMatchObject({
-        valid: false, // Should fail because expired
+        success: false, // Should fail because expired
       });
 
       // Send again - within resend window, so same OTP is resent with extended expiry

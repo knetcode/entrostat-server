@@ -109,6 +109,6 @@ describe("OTP Integration Flow", () => {
 
     // Subsequent verify with same code should fail (already used)
     const verifyAgain = await verifyOtp(testEmail, secondOtp!);
-    expect(verifyAgain.data).toMatchObject({ valid: false });
+    expect(verifyAgain.data).toMatchObject({ success: false });
   });
 });

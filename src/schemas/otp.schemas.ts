@@ -12,8 +12,8 @@ const emailSchema = z.preprocess(
     return val;
   },
   z
-    .email({ message: "Invalid email format" })
-    .max(255, { message: "Email is too long" })
+    .email({ message: "Please enter a valid email address" })
+    .max(255, { message: "Email address is too long. Please use a shorter email address." })
     .meta({ description: "Email address", title: "Email" })
     .default("test@example.com")
 );
@@ -24,9 +24,9 @@ const emailSchema = z.preprocess(
  * Regex validation is sufficient - no need for redundant min/max checks
  */
 const otpCodeSchema = z
-  .string({ message: "OTP is required" })
+  .string({ message: "Please enter your OTP code" })
   .trim()
-  .regex(/^\d{6}$/, { message: "OTP must be exactly 6 digits" })
+  .regex(/^\d{6}$/, { message: "Please enter a 6-digit code" })
   .meta({ description: "OTP code", title: "OTP" })
   .default("123456");
 
@@ -76,7 +76,7 @@ export const errorItemSchema = z
   .object({
     code: z.string().default("invalid_string"),
     path: z.array(z.string()).default(["email"]),
-    message: z.string().default("Invalid email format"),
+    message: z.string().default("Please enter a valid email address"),
   })
   .meta({
     description: "Individual validation error item",
@@ -87,16 +87,18 @@ export const errorItemSchema = z
 export const successResponseSchema = z.object({
   success: z.literal(true).default(true),
   message: z.string().default("OTP sent successfully"),
+  correlationId: z.uuid().default(crypto.randomUUID()).optional(),
 });
 
 // Error response with validation errors
 export const errorResponseSchema = z
   .object({
     success: z.literal(false).default(false),
-    message: z.string().default("Invalid email format"),
+    message: z.string().default("Please enter a valid email address"),
     errors: z
       .array(errorItemSchema)
       .default([{ code: "invalid_email", path: ["email"], message: "Invalid email format" }]),
+    correlationId: z.uuid().default(crypto.randomUUID()).optional(),
   })
   .meta({
     description: "Error response for send/resend/verify OTP",
@@ -109,6 +111,7 @@ export const verifySuccessResponseSchema = z
     success: z.literal(true).default(true),
     valid: z.literal(true).default(true),
     message: z.string().default("OTP verified successfully"),
+    correlationId: z.uuid().default(crypto.randomUUID()).optional(),
   })
   .meta({
     description: "Success response for verify OTP",
@@ -132,6 +135,7 @@ export const rateLimitResponseSchema = z
   .object({
     success: z.literal(false).default(false),
     message: z.string().default("Rate limit exceeded"),
+    correlationId: z.uuid().default(crypto.randomUUID()).optional(),
   })
   .meta({
     description: "Rate limit response",

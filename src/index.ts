@@ -8,6 +8,7 @@ import { db } from "./db";
 import { pingTable } from "./db/schema";
 import { desc } from "drizzle-orm";
 import { otpRoutes } from "./routes/otp.routes";
+import { errorLogRoutes } from "./routes/error-log.routes";
 
 dotenv.config();
 
@@ -81,15 +82,18 @@ async function start() {
 
       // Handle Fastify validation errors
       // Allowing `any` because we don't always know what type the error will be.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (hasValidation && Array.isArray((error as any).validation)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const validationError = error as any;
         return reply.status(400).send({
           success: false,
-          message: validationError.message || "Validation error",
+          message: validationError.message || "Please check your input and try again.",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           errors: validationError.validation.map((err: any) => ({
             code: err.keyword || "validation_error",
             path: err.instancePath ? err.instancePath.split("/").filter(Boolean) : [],
-            message: err.message || "Validation failed",
+            message: err.message || "Invalid input",
           })),
         });
       }
@@ -98,9 +102,17 @@ async function start() {
       server.log.error(error);
 
       // Generic error response
+      // Allowing `any` because we don't always know what type the error will be.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorObj = error as any;
       const statusCode = typeof errorObj.statusCode === "number" ? errorObj.statusCode : 500;
-      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      // Don't expose internal error messages to users
+      const message =
+        statusCode === 500
+          ? "Something went wrong. Please try again in a moment."
+          : error instanceof Error
+            ? error.message
+            : "An error occurred";
 
       return reply.status(statusCode).send({
         success: false,
@@ -128,6 +140,9 @@ async function start() {
 
     // Register OTP routes
     await server.register(otpRoutes);
+
+    // Register error log routes
+    await server.register(errorLogRoutes);
 
     // Export OpenAPI spec as JSON
     server.get("/api/openapi.json", async (_request, reply) => {

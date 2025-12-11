@@ -49,7 +49,10 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
 
   if (error) {
     console.error("[Email Service] Failed to send OTP email:", error);
-    throw new Error(`Failed to send OTP email: ${error.message}`);
+
+    throw new Error(
+      "We couldn't send your email right now. Please check your email address and try again in a moment."
+    );
   }
 
   // Log success (mask OTP for security)
