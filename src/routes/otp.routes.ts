@@ -59,6 +59,16 @@ export async function otpRoutes(app: FastifyInstance) {
       schema: {
         description: "Send a new OTP or resend existing OTP if within resend window",
         tags: ["OTP"],
+        headers: {
+          type: "object",
+          properties: {
+            correlationid: {
+              type: "string",
+              description: "Correlation ID (uuid) for request tracking",
+            },
+          },
+          required: ["correlationid"],
+        },
         body: sendOtpRequestSchema,
         response: {
           200: successResponseSchema,
@@ -175,6 +185,16 @@ export async function otpRoutes(app: FastifyInstance) {
       schema: {
         description: "Resend an existing OTP if within resend window",
         tags: ["OTP"],
+        headers: {
+          type: "object",
+          properties: {
+            correlationid: {
+              type: "string",
+              description: "Correlation ID (uuid) for request tracking",
+            },
+          },
+          required: ["correlationid"],
+        },
         body: resendOtpRequestSchema,
         response: {
           200: successResponseSchema,
@@ -301,6 +321,16 @@ export async function otpRoutes(app: FastifyInstance) {
       schema: {
         description: "Verify an OTP code",
         tags: ["OTP"],
+        headers: {
+          type: "object",
+          properties: {
+            correlationid: {
+              type: "string",
+              description: "Correlation ID (uuid) for request tracking",
+            },
+          },
+          required: ["correlationid"],
+        },
         body: verifyOtpRequestSchema,
         response: {
           200: verifySuccessResponseSchema,

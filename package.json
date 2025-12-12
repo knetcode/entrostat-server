@@ -22,7 +22,7 @@
     "test:watch": "SKIP_EMAIL=true vitest",
     "test:ui": "SKIP_EMAIL=true vitest --ui",
     "test:coverage": "SKIP_EMAIL=true vitest run --coverage",
-    "checks": "pnpm format ; pnpm lint",
+    "checks": "prettier --write . ; eslint .",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",

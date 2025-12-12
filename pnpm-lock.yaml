@@ -9,7 +9,7 @@ importers:
     dependencies:
       "@fastify/cors":
         specifier: ^11.1.0
-        version: 11.1.0
+        version: 11.2.0
       "@fastify/swagger":
         specifier: ^9.6.1
         version: 9.6.1
@@ -21,7 +21,7 @@ importers:
         version: 16.6.1
       drizzle-orm:
         specifier: ^0.45.0
-        version: 0.45.0(@types/pg@8.15.6)(pg@8.16.3)
+        version: 0.45.1(@types/pg@8.16.0)(pg@8.16.3)
       fastify:
         specifier: ^5.6.2
         version: 5.6.2
@@ -30,7 +30,7 @@ importers:
         version: 8.16.3
       resend:
         specifier: ^6.5.2
-        version: 6.5.2
+        version: 6.6.0
       zod:
         specifier: ^4.1.13
         version: 4.1.13
@@ -40,10 +40,10 @@ importers:
         version: 9.39.1
       "@types/node":
         specifier: ^24.0.0
-        version: 24.10.1
+        version: 24.10.3
       "@types/pg":
         specifier: ^8.15.6
-        version: 8.15.6
+        version: 8.16.0
       "@typescript-eslint/eslint-plugin":
         specifier: ^8.49.0
         version: 8.49.0(@typescript-eslint/parser@8.49.0(eslint@9.39.1)(typescript@5.9.3))(eslint@9.39.1)(typescript@5.9.3)
@@ -79,7 +79,7 @@ importers:
         version: 8.49.0(eslint@9.39.1)(typescript@5.9.3)
       vitest:
         specifier: ^4.0.15
-        version: 4.0.15(@types/node@24.10.1)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2)
+        version: 4.0.15(@types/node@24.10.3)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
   "@babel/helper-string-parser@7.27.1":
@@ -695,9 +695,9 @@ packages:
     resolution:
       { integrity: sha512-KoWKW+MhvfTRWL4qrhUwAAZoaChluo0m0vbiJlGMt2GXvL4LVPQEjt8kSpHI3IBq5Rez8fg+XeH3cneztq+C7A== }
 
-  "@fastify/cors@11.1.0":
+  "@fastify/cors@11.2.0":
     resolution:
-      { integrity: sha512-sUw8ed8wP2SouWZTIbA7V2OQtMNpLj2W6qJOYhNdcmINTu6gsxVYXjQiM9mdi8UUDlcoDDJ/W2syPo1WB2QjYA== }
+      { integrity: sha512-LbLHBuSAdGdSFZYTLVA3+Ch2t+sA6nq3Ejc6XLAKiQ6ViS2qFnvicpj0htsx03FyYeLs04HfRNBsz/a8SvbcUw== }
 
   "@fastify/error@4.2.0":
     resolution:
@@ -956,13 +956,13 @@ packages:
     resolution:
       { integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw== }
 
-  "@types/node@24.10.1":
+  "@types/node@24.10.3":
     resolution:
-      { integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ== }
+      { integrity: sha512-gqkrWUsS8hcm0r44yn7/xZeV1ERva/nLgrLxFRUGb7aoNMIJfZJ3AC261zDQuOAKC7MiXai1WCpYc48jAHoShQ== }
 
-  "@types/pg@8.15.6":
+  "@types/pg@8.16.0":
     resolution:
-      { integrity: sha512-NoaMtzhxOrubeL/7UZuNTrejB4MPAJ0RpxZqXQf2qXuVlTPuG6Y8p4u9dKRaue4yjmC7ZhzVO2/Yyyn25znrPQ== }
+      { integrity: sha512-RmhMd/wD+CF8Dfo+cVIy3RR5cl8CyfXQ0tGgW6XBL8L4LM/UTEbNXYRbLwU6w+CgrKBNbrQWt4FUtTfaU5jSYQ== }
 
   "@typescript-eslint/eslint-plugin@8.49.0":
     resolution:
@@ -1253,9 +1253,9 @@ packages:
       { integrity: sha512-O9EC/miwdnRDY10qRxM8P3Pg8hXe3LyU4ZipReKOgTwn4OqANmftj8XJz1UPUAS6NMHf0E2htjsbQujUTkncCg== }
     hasBin: true
 
-  drizzle-orm@0.45.0:
+  drizzle-orm@0.45.1:
     resolution:
-      { integrity: sha512-lyd9VRk3SXKRjV/gQckQzmJgkoYMvVG3A2JAV0vh3L+Lwk+v9+rK5Gj0H22y+ZBmxsrRBgJ5/RbQCN7DWd1dtQ== }
+      { integrity: sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA== }
     peerDependencies:
       "@aws-sdk/client-rds-data": ">=3"
       "@cloudflare/workers-types": ">=4"
@@ -1975,9 +1975,9 @@ packages:
     resolution:
       { integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ== }
 
-  resend@6.5.2:
+  resend@6.6.0:
     resolution:
-      { integrity: sha512-Yl83UvS8sYsjgmF8dVbNPzlfpmb3DkLUk3VwsAbkaEFo9UMswpNuPGryHBXGk+Ta4uYMv5HmjVk3j9jmNkcEDg== }
+      { integrity: sha512-d1WoOqSxj5x76JtQMrieNAG1kZkh4NU4f+Je1yq4++JsDpLddhEwnJlNfvkCzvUuZy9ZquWmMMAm2mENd2JvRw== }
     engines: { node: ">=20" }
     peerDependencies:
       "@react-email/render": "*"
@@ -2657,7 +2657,7 @@ snapshots:
       ajv-formats: 3.0.1(ajv@8.17.1)
       fast-uri: 3.1.0
 
-  "@fastify/cors@11.1.0":
+  "@fastify/cors@11.2.0":
     dependencies:
       fastify-plugin: 5.1.0
       toad-cache: 3.7.0
@@ -2840,13 +2840,13 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  "@types/node@24.10.1":
+  "@types/node@24.10.3":
     dependencies:
       undici-types: 7.16.0
 
-  "@types/pg@8.15.6":
+  "@types/pg@8.16.0":
     dependencies:
-      "@types/node": 24.10.1
+      "@types/node": 24.10.3
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 
@@ -2954,7 +2954,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.15(@types/node@24.10.1)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 4.0.15(@types/node@24.10.3)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -2967,13 +2967,13 @@ snapshots:
       chai: 6.2.1
       tinyrainbow: 3.0.3
 
-  "@vitest/mocker@4.0.15(vite@7.2.7(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2))":
+  "@vitest/mocker@4.0.15(vite@7.2.7(@types/node@24.10.3)(tsx@4.21.0)(yaml@2.8.2))":
     dependencies:
       "@vitest/spy": 4.0.15
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.2.7(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.2.7(@types/node@24.10.3)(tsx@4.21.0)(yaml@2.8.2)
 
   "@vitest/pretty-format@4.0.15":
     dependencies:
@@ -3001,7 +3001,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.15(@types/node@24.10.1)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 4.0.15(@types/node@24.10.3)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2)
 
   "@vitest/utils@4.0.15":
     dependencies:
@@ -3124,9 +3124,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.0(@types/pg@8.15.6)(pg@8.16.3):
+  drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3):
     optionalDependencies:
-      "@types/pg": 8.15.6
+      "@types/pg": 8.16.0
       pg: 8.16.3
 
   eastasianwidth@0.2.0: {}
@@ -3697,7 +3697,7 @@ snapshots:
 
   requires-port@1.0.0: {}
 
-  resend@6.5.2:
+  resend@6.6.0:
     dependencies:
       svix: 1.76.1
 
@@ -3891,7 +3891,7 @@ snapshots:
 
   uuid@10.0.0: {}
 
-  vite@7.2.7(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2):
+  vite@7.2.7(@types/node@24.10.3)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.3)
@@ -3900,15 +3900,15 @@ snapshots:
       rollup: 4.53.3
       tinyglobby: 0.2.15
     optionalDependencies:
-      "@types/node": 24.10.1
+      "@types/node": 24.10.3
       fsevents: 2.3.3
       tsx: 4.21.0
       yaml: 2.8.2
 
-  vitest@4.0.15(@types/node@24.10.1)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2):
+  vitest@4.0.15(@types/node@24.10.3)(@vitest/ui@4.0.15)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       "@vitest/expect": 4.0.15
-      "@vitest/mocker": 4.0.15(vite@7.2.7(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2))
+      "@vitest/mocker": 4.0.15(vite@7.2.7(@types/node@24.10.3)(tsx@4.21.0)(yaml@2.8.2))
       "@vitest/pretty-format": 4.0.15
       "@vitest/runner": 4.0.15
       "@vitest/snapshot": 4.0.15
@@ -3925,10 +3925,10 @@ snapshots:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.2.7(@types/node@24.10.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.2.7(@types/node@24.10.3)(tsx@4.21.0)(yaml@2.8.2)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      "@types/node": 24.10.1
+      "@types/node": 24.10.3
       "@vitest/ui": 4.0.15(vitest@4.0.15)
     transitivePeerDependencies:
       - jiti
